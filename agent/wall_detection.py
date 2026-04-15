@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 
-image_path = "images/wall.jpg"
+image_path = "images/maze.jpg"
 
 
 def get_image(image_path):
@@ -20,7 +20,7 @@ def get_pink_mask(image_path):
 
     # lower and upper bounds for pink 
     lower = np.array([140, 40, 40], dtype=np.uint8)
-    upper = np.array([179, 255, 255], dtype=np.uint8)
+    upper = np.array([180, 255, 255], dtype=np.uint8)
 
     mask = cv.inRange(hsv, lower, upper)
     return mask
@@ -31,7 +31,7 @@ def main():
     mask = get_pink_mask(image_path)
 
     # detect lines with hough transform -> returns a list of lines in the format (x1, y1, x2, y2)
-    lines = cv.HoughLinesP(mask, 1, np.pi / 180, 50, minLineLength=80, maxLineGap=20)
+    lines = cv.HoughLinesP(mask, 1, np.pi / 180, 50, minLineLength=30, maxLineGap=20)
 
     result = img.copy()
 

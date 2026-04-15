@@ -8,4 +8,4 @@ RUN mkdir -p /app/received_photos
 
 COPY . .
 
-ENTRYPOINT ["python", "src/runner.py"]
+ENTRYPOINT ["python", "-m", "agent"]

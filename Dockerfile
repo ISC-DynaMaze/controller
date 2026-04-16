@@ -10,10 +10,11 @@ RUN apt update && \
         libxext6 && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install spade==3.3.3 aiofiles==23.2.1 opencv-python
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-RUN mkdir -p /app/received_photos
+RUN mkdir -p /app/photos
 
-COPY . .
+COPY ./agent /app/agent
 
 ENTRYPOINT ["python", "-m", "agent"]

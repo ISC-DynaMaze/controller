@@ -1,9 +1,12 @@
 import logging
+from pathlib import Path
+
 from spade.agent import Agent
+
+from agent.photo import ReceivePhotoBehaviour, RequestPhotoBehaviour
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("AlphaBotAgent")
 
 # Enable SPADE and XMPP specific logging
 for log_name in ["spade", "aioxmpp", "xmpp"]:
@@ -11,7 +14,14 @@ for log_name in ["spade", "aioxmpp", "xmpp"]:
     log.setLevel(logging.DEBUG)
     log.propagate = True
 
+
 class ControllerAgent(Agent):
+    def __init__(self, jid: str, password: str, port: int = 5222, verify_security: bool = False):
+        super().__init__(jid, password, port, verify_security)
+        self.logger = logging.getLogger("ControllerAgent")
 
     async def setup(self):
-        pass
+        ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")
+        receive_photo = ReceivePhotoBehaviour(save_dir=Path("photos"))
+        self.add_behaviour(ask_photo)
+        self.add_behaviour(receive_photo)

@@ -8,7 +8,7 @@ from spade.agent import Agent
 from spade.behaviour import Message, OneShotBehaviour
 
 
-class BotDetectionBehavior(OneShotBehaviour):
+class BotDetectionBehaviour(OneShotBehaviour):
     agent: Agent
 
     def __init__(self, img: np.ndarray):

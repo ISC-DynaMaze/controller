@@ -8,7 +8,7 @@ import numpy as np
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour, Message, OneShotBehaviour
 
-from agent.bot_detection import BotDetectionBehavior
+from agent.bot_detection import BotDetectionBehaviour
 
 
 class RequestPhotoBehaviour(OneShotBehaviour):
@@ -53,5 +53,5 @@ class ReceivePhotoBehaviour(CyclicBehaviour):
 
             print(f"Photo saved as '{filepath}'.")
             img: np.ndarray = cv2.imread(filepath)  # type: ignore
-            bot_detection = BotDetectionBehavior(img)
+            bot_detection = BotDetectionBehaviour(img)
             self.agent.add_behaviour(bot_detection)

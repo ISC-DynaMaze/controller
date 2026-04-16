@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 from grid import Maze
 
-image_path = "images/maze.jpg"
+image_path = "images/maze.png"
 
 
 def get_image(image_path):
@@ -160,16 +160,24 @@ def main():
     result = draw_outer_rectangle(result, rect)
     result = draw_lines(result, horizontal_lines, vertical_lines)
 
-    x, y, w, h = rect
-    print(f"Outer rectangle: x={x}, y={y}, w={w}, h={h}")
-    print(f"Horizontal segments: {len(horizontal_lines)}")
-    print(f"Vertical segments: {len(vertical_lines)}")
-
     maze = Maze(rows=3, cols=11)
+    maze.build_from_detected_lines(rect, horizontal_lines, vertical_lines, overlap_ratio=0.6)
+    grid_img = maze.draw(cell_size=140, margin=40, wall_thickness=4)
+
+    print("Horizontal walls:")
+    for row in maze.h_walls:
+        print(row)
+
+    print("\nVertical walls:")
+    for row in maze.v_walls:
+        print(row)
+
+    maze.print_maze()
 
     cv.imshow("Mask", mask)
-    cv.imshow("Horizontal mask", horizontal_mask)
-    cv.imshow("Vertical mask", vertical_mask)
+    cv.imshow("Maze Grid", grid_img)
+    #cv.imshow("Horizontal mask", horizontal_mask)
+    #cv.imshow("Vertical mask", vertical_mask)
     cv.imshow("Detected segments", result)
     cv.waitKey(0)
     cv.destroyAllWindows()

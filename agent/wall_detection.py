@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+from grid import Maze
 
 image_path = "images/maze.jpg"
 
@@ -24,50 +25,9 @@ def get_pink_mask(image_path):
     # small cleanup to close gaps in walls
     kernel = np.ones((3, 3), np.uint8)
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=2)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel, iterations=1)
 
     return mask
-
-# function to detect lines, min line length should not be too big bc some walls can be short
-def detect_lines(mask):
-    lines = cv.HoughLinesP(
-        mask,
-        rho=1,
-        theta=np.pi / 180,
-        threshold=50,
-        minLineLength=30,
-        maxLineGap=20
-    )
-
-    detected_lines = []
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            detected_lines.append((x1, y1, x2, y2))
-
-    return detected_lines
-
-# split vertical and horizontal lines 
-def split_horizontal_vertical(lines, angle_tolerance=10):
-    horizontal = []
-    vertical = []
-
-    # check angle of each line, if close to 0 or 180 -> horizontal, if close to 90 -> vertical
-    for x1, y1, x2, y2 in lines:
-        dx = x2 - x1
-        dy = y2 - y1
-
-        angle = np.degrees(np.arctan2(dy, dx))
-        angle = abs(angle)
-
-        # horizontal
-        if angle < angle_tolerance or angle > 180 - angle_tolerance:
-            horizontal.append((x1, y1, x2, y2))
-
-        # vertical
-        elif abs(angle - 90) < angle_tolerance:
-            vertical.append((x1, y1, x2, y2))
-
-    return horizontal, vertical
 
 # get main rectangle of maze
 def find_outer_rectangle(mask):
@@ -103,6 +63,50 @@ def keep_lines_in_rectangle(lines, rect, margin=10):
 
     return kept_lines
 
+# mask with horizontal lines
+def extract_horizontal_mask(mask, kernel_len=25):
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (kernel_len, 1))
+    horizontal = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    return horizontal
+
+# mask with vertical lines
+def extract_vertical_mask(mask, kernel_len=25):
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, kernel_len))
+    vertical = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    return vertical
+
+# get horizontal segments as (x1, y, x2, y) from horizontal mask, filter by min_length
+def get_horizontal_segments(horizontal_mask, min_length=30):
+    contours, _ = cv.findContours(horizontal_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    segments = []
+
+    for cnt in contours:
+        x, y, w, h = cv.boundingRect(cnt)
+
+        if w >= min_length:
+            y_center = y + h // 2
+            segments.append((x, y_center, x + w, y_center))
+
+    segments.sort(key=lambda line: (line[1], line[0]))
+    return segments
+
+# get vertical segments as (x, y1, x, y2) from vertical mask, filter by min_length
+def get_vertical_segments(vertical_mask, min_length=30):
+    contours, _ = cv.findContours(vertical_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    segments = []
+
+    for cnt in contours:
+        x, y, w, h = cv.boundingRect(cnt)
+
+        if h >= min_length:
+            x_center = x + w // 2
+            segments.append((x_center, y, x_center, y + h))
+
+    segments.sort(key=lambda line: (line[0], line[1]))
+    return segments
+
 # draw main rectangle on img
 def draw_outer_rectangle(img, rect):
     x, y, w, h = rect
@@ -121,93 +125,55 @@ def draw_lines(img, horizontal, vertical):
 
     return img
 
-# merge lines into one line if they are close and collinear -> will help to create the maze's walls
-def merge_close_lines(lines, orientation, pos_threshold=15, gap_threshold=20):
-    if not lines:
-        return []
-
-    merged = []
-
-    if orientation == "horizontal":
-        # sort by y, then x
-        lines = sorted(lines, key=lambda line: (line[1], line[0]))
-
-        for x1, y1, x2, y2 in lines:
-            if x1 > x2:
-                x1, x2 = x2, x1
-
-            added = False
-
-            for i, (mx1, my1, mx2, my2) in enumerate(merged):
-                # same horizontal level and touching/overlapping
-                if abs(y1 - my1) <= pos_threshold and x1 <= mx2 + gap_threshold:
-                    new_x1 = min(mx1, x1)
-                    new_x2 = max(mx2, x2)
-                    new_y = int(round((my1 + y1) / 2))
-                    merged[i] = (new_x1, new_y, new_x2, new_y)
-                    added = True
-                    break
-
-            if not added:
-                merged.append((x1, y1, x2, y2))
-
-    elif orientation == "vertical":
-        # sort by x, then y
-        lines = sorted(lines, key=lambda line: (line[0], line[1]))
-
-        for x1, y1, x2, y2 in lines:
-            if y1 > y2:
-                y1, y2 = y2, y1
-
-            added = False
-
-            for i, (mx1, my1, mx2, my2) in enumerate(merged):
-                # same vertical level and touching/overlapping
-                if abs(x1 - mx1) <= pos_threshold and y1 <= my2 + gap_threshold:
-                    new_y1 = min(my1, y1)
-                    new_y2 = max(my2, y2)
-                    new_x = int(round((mx1 + x1) / 2))
-                    merged[i] = (new_x, new_y1, new_x, new_y2)
-                    added = True
-                    break
-
-            if not added:
-                merged.append((x1, y1, x1, y2))
-
-    else:
-        # error if no orientation
-        raise ValueError("orientation must be 'horizontal' or 'vertical'")
-
-    return merged
-
-
-def main():
+# main function to detect maze walls and return segments and masks
+def detect_maze_walls(image_path, kernel_len=25, min_length=30):
+    # source image and mask
     img = get_image(image_path)
     mask = get_pink_mask(image_path)
 
-    lines = detect_lines(mask)
-    horizontal, vertical = split_horizontal_vertical(lines)
-
+    # contours of maze
     rect = find_outer_rectangle(mask)
 
-    horizontal_in = keep_lines_in_rectangle(horizontal, rect)
-    vertical_in = keep_lines_in_rectangle(vertical, rect)
+    # masks for horizontal and vertical lines
+    horizontal_mask = extract_horizontal_mask(mask, kernel_len=kernel_len)
+    vertical_mask = extract_vertical_mask(mask, kernel_len=kernel_len)
 
-    horizontal_merged = merge_close_lines(horizontal_in, "horizontal")
-    vertical_merged = merge_close_lines(vertical_in, "vertical")
+    # segments of horizontal and vertical lines
+    horizontal_lines = get_horizontal_segments(horizontal_mask, min_length=min_length)
+    vertical_lines = get_vertical_segments(vertical_mask, min_length=min_length)
+
+    # filter lines to keep only those in the main rectangle
+    horizontal_lines = keep_lines_in_rectangle(horizontal_lines, rect)
+    vertical_lines = keep_lines_in_rectangle(vertical_lines, rect)
+
+    return rect, horizontal_lines, vertical_lines, img, mask, horizontal_mask, vertical_mask
+
+
+def main():
+    rect, horizontal_lines, vertical_lines, img, mask, horizontal_mask, vertical_mask = detect_maze_walls(
+        image_path=image_path,
+        kernel_len=25,
+        min_length=30
+    )
 
     result = img.copy()
     result = draw_outer_rectangle(result, rect)
-    result = draw_lines(result, horizontal_merged, vertical_merged)
+    result = draw_lines(result, horizontal_lines, vertical_lines)
 
-    # see how many final lines
-    print(f"Horizontal lines: {len(horizontal_in)} -> merged: {len(horizontal_merged)}")
-    print(f"Vertical lines: {len(vertical_in)} -> merged: {len(vertical_merged)}")
+    x, y, w, h = rect
+    print(f"Outer rectangle: x={x}, y={y}, w={w}, h={h}")
+    print(f"Horizontal segments: {len(horizontal_lines)}")
+    print(f"Vertical segments: {len(vertical_lines)}")
+
+    maze = Maze(rows=3, cols=11)
 
     cv.imshow("Mask", mask)
-    cv.imshow("Merged lines", result)
+    cv.imshow("Horizontal mask", horizontal_mask)
+    cv.imshow("Vertical mask", vertical_mask)
+    cv.imshow("Detected segments", result)
     cv.waitKey(0)
     cv.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()

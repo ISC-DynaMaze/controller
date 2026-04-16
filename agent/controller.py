@@ -16,8 +16,8 @@ for log_name in ["spade", "aioxmpp", "xmpp"]:
 
 
 class ControllerAgent(Agent):
-    def __init__(self, jid: str, password: str, port: int = 5222, verify_security: bool = False):
-        super().__init__(jid, password, port, verify_security)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger("ControllerAgent")
 
     async def setup(self):

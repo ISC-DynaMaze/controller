@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 from grid import Maze
 
-image_path = "images/maze.png"
+image_path = "images/maze4.png"
 
 
 def get_image(image_path):

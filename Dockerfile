@@ -2,10 +2,19 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-RUN pip install spade==3.3.3 aiofiles==23.2.1
+RUN apt update && \
+    apt install -y --no-install-recommends \
+        libxcb1 \
+        ffmpeg \
+        libsm6 \
+        libxext6 && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/received_photos
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-COPY . .
+RUN mkdir -p /app/photos
+
+COPY ./agent /app/agent
 
 ENTRYPOINT ["python", "-m", "agent"]

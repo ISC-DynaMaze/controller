@@ -1,0 +1,11 @@
+[project]
+name = "controller"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "opencv-python>=4.13.0.92",
+    "spade>=4.1.2",
+]

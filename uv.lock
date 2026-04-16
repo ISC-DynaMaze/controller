@@ -511,12 +511,14 @@ name = "controller"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiofiles" },
     { name = "opencv-python" },
     { name = "spade" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "opencv-python", specifier = ">=4.13.0.92" },
     { name = "spade", specifier = ">=4.1.2" },
 ]

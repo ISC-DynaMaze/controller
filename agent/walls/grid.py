@@ -241,6 +241,39 @@ class Maze():
 
         return img
 
+    # convert maze to a dictionary format for easy serialization
+    def to_dict(self):
+        return {
+            "rows": self.n_rows,
+            "cols": self.n_cols,
+            "h_walls": self.h_walls,
+            "v_walls": self.v_walls,
+        }
+
+    # create a maze object from a dictionary
+    @classmethod
+    def from_dict(cls, data):
+        maze = cls(rows=data["rows"], cols=data["cols"])
+        maze.clear_walls()
+
+        maze.h_walls = data["h_walls"]
+        maze.v_walls = data["v_walls"]
+
+        for row in range(maze.n_rows):
+            for col in range(maze.n_cols):
+                maze.grid[row][col].walls = [False, False, False, False]
+
+                if maze.h_walls[row][col]:
+                    maze.grid[row][col].add_wall(UP)
+                if maze.h_walls[row + 1][col]:
+                    maze.grid[row][col].add_wall(DOWN)
+                if maze.v_walls[row][col]:
+                    maze.grid[row][col].add_wall(LEFT)
+                if maze.v_walls[row][col + 1]:
+                    maze.grid[row][col].add_wall(RIGHT)
+
+        return maze
+
     def print_maze(self):
         for row in self.grid:
             for cell in row:

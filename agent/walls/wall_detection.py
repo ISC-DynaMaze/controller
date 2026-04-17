@@ -1,22 +1,19 @@
 import numpy as np
 import cv2 as cv
-from grid import Maze
-
-image_path = "images/maze4.png"
+from walls.grid import Maze
 
 
 def get_image(image_path):
-    img = cv.imread(image_path, cv.IMREAD_COLOR)
+    img = cv.imread(str(image_path), cv.IMREAD_COLOR)
     if img is None:
         raise FileNotFoundError(f"Error opening image: {image_path}")
     return img
 
 # get a pink mask from the image using HSV color space -> binary image with white walls and black background
-def get_pink_mask(image_path):
-    img = get_image(image_path)
-    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+def get_pink_mask(image):
+    hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
 
-    # lower and upper bounds for pink 
+    # lower and upper bounds for pink
     lower = np.array([140, 40, 40], dtype=np.uint8)
     upper = np.array([180, 255, 255], dtype=np.uint8)
 
@@ -125,11 +122,10 @@ def draw_lines(img, horizontal, vertical):
 
     return img
 
-# main function to detect maze walls and return segments and masks
-def detect_maze_walls(image_path, kernel_len=25, min_length=30):
-    # source image and mask
-    img = get_image(image_path)
-    mask = get_pink_mask(image_path)
+
+# main function to detect maze walls from an image already loaded in memory
+def detect_maze_walls_from_image(image, kernel_len=25, min_length=30):
+    mask = get_pink_mask(image)
 
     # contours of maze
     rect = find_outer_rectangle(mask)
@@ -146,42 +142,73 @@ def detect_maze_walls(image_path, kernel_len=25, min_length=30):
     horizontal_lines = keep_lines_in_rectangle(horizontal_lines, rect)
     vertical_lines = keep_lines_in_rectangle(vertical_lines, rect)
 
-    return rect, horizontal_lines, vertical_lines, img, mask, horizontal_mask, vertical_mask
+    return rect, horizontal_lines, vertical_lines, mask, horizontal_mask, vertical_mask
 
 
-def main():
-    rect, horizontal_lines, vertical_lines, img, mask, horizontal_mask, vertical_mask = detect_maze_walls(
-        image_path=image_path,
-        kernel_len=25,
-        min_length=30
+# convenient function for behaviours
+def build_maze_from_image(
+    image,
+    rows=3,
+    cols=11,
+    kernel_len=25,
+    min_length=30,
+    overlap_ratio=0.6,
+    cell_size=140,
+    margin=40,
+    wall_thickness=4,
+):
+    rect, horizontal_lines, vertical_lines, mask, horizontal_mask, vertical_mask = detect_maze_walls_from_image(
+        image=image,
+        kernel_len=kernel_len,
+        min_length=min_length,
     )
 
-    result = img.copy()
-    result = draw_outer_rectangle(result, rect)
-    result = draw_lines(result, horizontal_lines, vertical_lines)
+    maze = Maze(rows=rows, cols=cols)
+    maze.build_from_detected_lines(rect, horizontal_lines, vertical_lines, overlap_ratio=overlap_ratio)
 
-    maze = Maze(rows=3, cols=11)
-    maze.build_from_detected_lines(rect, horizontal_lines, vertical_lines, overlap_ratio=0.6)
-    grid_img = maze.draw(cell_size=140, margin=40, wall_thickness=4)
+    grid_img = maze.draw(
+        cell_size=cell_size,
+        margin=margin,
+        wall_thickness=wall_thickness,
+    )
 
-    print("Horizontal walls:")
-    for row in maze.h_walls:
-        print(row)
+    debug_img = image.copy()
+    debug_img = draw_outer_rectangle(debug_img, rect)
+    debug_img = draw_lines(debug_img, horizontal_lines, vertical_lines)
 
-    print("\nVertical walls:")
-    for row in maze.v_walls:
-        print(row)
-
-    maze.print_maze()
-
-    cv.imshow("Mask", mask)
-    cv.imshow("Maze Grid", grid_img)
-    #cv.imshow("Horizontal mask", horizontal_mask)
-    #cv.imshow("Vertical mask", vertical_mask)
-    cv.imshow("Detected segments", result)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    return {
+        "maze": maze,
+        "grid_img": grid_img,
+        "debug_img": debug_img,
+        "mask": mask,
+        "horizontal_mask": horizontal_mask,
+        "vertical_mask": vertical_mask,
+        "rect": rect,
+        "horizontal_lines": horizontal_lines,
+        "vertical_lines": vertical_lines,
+    }
 
 
-if __name__ == "__main__":
-    main()
+def build_maze_from_path(
+    image_path,
+    rows=3,
+    cols=11,
+    kernel_len=25,
+    min_length=30,
+    overlap_ratio=0.6,
+    cell_size=140,
+    margin=40,
+    wall_thickness=4,
+):
+    image = get_image(image_path)
+    return build_maze_from_image(
+        image=image,
+        rows=rows,
+        cols=cols,
+        kernel_len=kernel_len,
+        min_length=min_length,
+        overlap_ratio=overlap_ratio,
+        cell_size=cell_size,
+        margin=margin,
+        wall_thickness=wall_thickness,
+    )

@@ -8,7 +8,8 @@ import numpy as np
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour, Message, OneShotBehaviour
 
-from agent.bot_detection import BotDetectionBehaviour
+from bot_detection import BotDetectionBehaviour
+from build_maze import BuildMazeBehaviour
 
 
 class RequestPhotoBehaviour(OneShotBehaviour):
@@ -30,10 +31,14 @@ class RequestPhotoBehaviour(OneShotBehaviour):
 class ReceivePhotoBehaviour(CyclicBehaviour):
     agent: Agent
 
-    def __init__(self, save_dir: Path):
+    def __init__(self, save_dir: Path, maze_dir: Path, request_jid: str):
         super().__init__()
         self.save_dir: Path = save_dir
+        self.maze_dir: Path = maze_dir
+        self.request_jid: str = request_jid
+
         self.save_dir.mkdir(parents=True, exist_ok=True)
+        self.maze_dir.mkdir(parents=True, exist_ok=True)
 
     async def run(self):
         print("Waiting for photo message...")
@@ -55,3 +60,10 @@ class ReceivePhotoBehaviour(CyclicBehaviour):
             img: np.ndarray = cv2.imread(filepath)  # type: ignore
             bot_detection = BotDetectionBehaviour(img)
             self.agent.add_behaviour(bot_detection)
+
+            build_maze = BuildMazeBehaviour(
+                photo_path=filepath,
+                request_jid=self.request_jid,
+                output_dir=self.maze_dir,
+            )
+            self.agent.add_behaviour(build_maze)

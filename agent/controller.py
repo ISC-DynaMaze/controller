@@ -22,6 +22,13 @@ class ControllerAgent(Agent):
 
     async def setup(self):
         ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")
-        receive_photo = ReceivePhotoBehaviour(save_dir=Path("photos"))
+
+        # ReceivePhotoBehaviour will save the photo, run bot detection, build maze and send maze data to requester
+        receive_photo = ReceivePhotoBehaviour(
+            save_dir=Path("photos"),
+            maze_dir=Path("mazes"),
+            request_jid="receiver_agent@isc-coordinator.lan",
+        )
+
         self.add_behaviour(ask_photo)
         self.add_behaviour(receive_photo)

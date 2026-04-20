@@ -8,3 +8,6 @@ uv.lock
 images/*
 mazes/*
 photos/*
+
+# tests
+maze_tests/*

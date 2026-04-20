@@ -1,9 +1,11 @@
 import logging
 from pathlib import Path
+from typing import Optional
 
 from spade.agent import Agent
 
 from agent.photo import ReceivePhotoBehaviour, RequestPhotoBehaviour
+from agent.walls.grid import Maze
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,6 +21,8 @@ class ControllerAgent(Agent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger("ControllerAgent")
+        # store maze in agent for later use
+        self.maze: Optional[Maze] = None
 
     async def setup(self):
         ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")

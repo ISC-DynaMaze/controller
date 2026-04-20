@@ -2,7 +2,7 @@ from agent.walls.grid import Cell
 
 class Obstacle:
     def __init__(self):
-        self.cell = None
+        self.cell: Cell = None
         #self.color = (0,0,0)
         self.color_range = [[(0,0,0), (0,0,0)]]
 

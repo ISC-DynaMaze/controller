@@ -2,9 +2,9 @@ import numpy as np
 import cv2 as cv
 
 from agent.obstacles.obstacles import yellowObstacle, redObstacle, greenObstacle
+from agent.walls.wall_detection import build_maze_from_path
 
-image_path = "images/maze_obj.png"
-
+# get maze from agent
 def get_built_maze(agent):
     return getattr(agent, "maze", None)
 
@@ -45,9 +45,40 @@ def highlight_obstacles(image, mask):
     cv.drawContours(highlighted, contours, -1, (0, 255, 255), 2)  # yellow contours
     return highlighted
 
+# get the center of the detected obstacles, will be used to determine their position in the grid 
+def get_obstacle_center(mask, min_area=100):
+    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    centers = []
+
+    for contour in contours: 
+        area = cv.contourArea(contour)
+        if area >= min_area:
+            x, y, w, h = cv.boundingRect(contour)
+            center_x = x + w // 2
+            center_y = y + h // 2
+            centers.append({"contour": contour, "bbox": (x, y, w, h), "center": (center_x, center_y), "area": area})
+
+    return centers
+
 def main():
+    image_path = "images/maze_obj.png"
     image = get_image(image_path)
-    #maze = None 
+    #maze = get_built_maze(None)  #TODO replace with agent
+
+    # get maze from image - normally would have to take maze from agent 
+    result = build_maze_from_path(
+                image_path=image_path,
+                rows=3,
+                cols=11,
+                kernel_len=25,
+                min_length=30,
+                overlap_ratio=0.6,
+                cell_size=140,
+                margin=40,
+                wall_thickness=4,
+            )
+ 
+    maze = result["maze"]
 
     y_obstacle = yellowObstacle() 
     r_obstacle = redObstacle() 
@@ -57,6 +88,8 @@ def main():
     highlighted = highlight_obstacles(image, mask)
     cv.imshow("Obstacle Mask", mask)
     cv.imshow("Highlighted Obstacles", highlighted)
+    cv.imshow("Maze Grid", result["grid_img"])
+    cv.imshow("Detected Segments", result["debug_img"])
     cv.waitKey(0)
     cv.destroyAllWindows()
 

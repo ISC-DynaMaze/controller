@@ -18,6 +18,7 @@ class Cell():
         self.g = float('inf')  # Cost from start to this cell
         self.h = 0  # Heuristic cost from this cell to destination
         self.parent = None  # Parent cell for path tracing
+        self.obstacles = []
 
     def add_wall(self, position):
         self.walls[position] = True

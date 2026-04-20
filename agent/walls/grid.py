@@ -12,6 +12,7 @@ class Cell():
         self.row = row
         self.col = col
         self.walls = walls if walls is not None else [False, False, False, False]
+        self.obstacles = []
         # for astar search
         self.f = float('inf')  # Total cost of the cell (g + h)
         self.g = float('inf')  # Cost from start to this cell
@@ -23,6 +24,9 @@ class Cell():
     
     def has_wall(self, position):
         return self.walls[position]
+    
+    def add_obstacle(self, obstacle):
+        self.obstacles.append(obstacle)
     
     def __repr__(self):
         return f"Cell({self.row}, {self.col}, walls={self.walls})"

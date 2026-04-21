@@ -8,7 +8,7 @@ from spade.agent import Agent
 from spade.behaviour import Message, OneShotBehaviour
 
 
-class BotDetection:
+class BotDetector:
     def __init__(self):
         self.dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.params = cv2.aruco.DetectorParameters()

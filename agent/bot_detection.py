@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Sequence
+import datetime
 
 import cv2
 import numpy as np
@@ -9,7 +10,7 @@ from spade.behaviour import Message, OneShotBehaviour
 
 
 class BotDetector:
-    def __init__(self):
+    def __init__(self, save_dir : str = "debug_photos"):
         self.dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.dict, self.params)
@@ -18,16 +19,16 @@ class BotDetector:
         corners, ids, _ = self.detector.detectMarkers(img)
 
         debug_img = img.copy()
-        if ids is not None:
-            # Dessine les cadres et les IDs sur l'image
-            cv2.aruco.drawDetectedMarkers(debug_img, corners, ids)
-            # Sauvegarde le fichier (il sera à la racine du container ou du projet)
-            cv2.imwrite("debug_aruco.jpg", debug_img)
+        cv2.aruco.drawDetectedMarkers(debug_img, corners, ids)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        filename = str(self.save_path / f"debug_{timestamp}.jpg")
+
+        cv2.imwrite(filename, debug_img)
 
         if ids is not None:
             for i, marker_id in enumerate(ids.flatten()):
                 if int(marker_id) == target_id:
-                    # On a trouvé le bon robot !
                     tl, tr, br, bl = corners[i][0]
                     v = bl - tl
                     angle_rad = np.atan2(v[1], v[0])

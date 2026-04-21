@@ -1,19 +1,15 @@
 
 from agent.walls.grid import Maze
-from agent.walls.wall_detection import build_maze_from_path, draw_lines, draw_outer_rectangle
-
+from agent.walls.wall_detection import build_maze_from_path
 
 import cv2 as cv
 
-
-## should get maze from agent but build it from image for now
 
 def set_start_cell(maze, row, col):
     maze.start_cell = maze.grid[row][col]
 
 def set_target_cell(maze, row, col):
     maze.target_cell = maze.grid[row][col]
-
 
 #### Helper functions for A* search
 # Check if a cell is the destination
@@ -24,7 +20,7 @@ def is_destination(row, col, dest):
 def calculate_h_value(row, col, dest):
     return ((row - dest[0]) ** 2 + (col - dest[1]) ** 2) ** 0.5
 
-# print path on console
+# trace path
 def trace_path(maze, dest_cell):
     path = []
     current_cell = dest_cell
@@ -33,13 +29,15 @@ def trace_path(maze, dest_cell):
         path.append((current_cell.row, current_cell.col))
         current_cell = current_cell.parent  
 
-    # Print the path
     path.reverse()
+    
+    return path[::-1]  # Return reversed path
+
+# print path on console
+def print_path(path):
     for i in path:
         print("->", i, end=" ")
     print()
-    
-    return path[::-1]  # Return reversed path
 
 # a* search algorithm
 def a_star_search(maze, src, dest):
@@ -148,10 +146,19 @@ def draw_path(maze_img, path, cell_size=140, margin=40, color=(0, 0, 0), thickne
     
     return img
 
-def main():
+# main function to find path
+def find_path(maze: Maze):
+    start = (maze.start_cell.row, maze.start_cell.col)
+    target = (maze.target_cell.row, maze.target_cell.col)
+
+    # A* search to find path
+    path = a_star_search(maze, start, target)
+    return path
+
+def test():
+    # ---- testing
     image_path = "images/maze_obj.png"
-    #image_path = "images/maze711.png"
-    image = cv.imread(image_path)
+    image_path = "images/maze711.png"
 
     result = build_maze_from_path(
                     image_path=image_path,
@@ -166,38 +173,28 @@ def main():
                 )
     maze = result["maze"]
 
+    # set start and target cells manually since we dont have the start and target detection implemented yet
     set_start_cell(maze, 1, 9)
     set_target_cell(maze, 2, 0)
-
     print(f"Start Cell: {maze.start_cell}")
     print(f"Target Cell: {maze.target_cell}")
 
-
-    lines = draw_lines(image, result["horizontal_lines"], result["vertical_lines"])
-
-
-    # Perform A* search to find path
-    path = a_star_search(maze, (maze.start_cell.row, maze.start_cell.col), (maze.target_cell.row, maze.target_cell.col))
-
-
-    maze_img = result["grid_img"]
+    # find path 
+    path = find_path(maze)
 
     # Draw the path on the maze image
+    maze_img = result["grid_img"]
     if path:
         maze_img_with_path = draw_path(maze_img, path, cell_size=140, margin=40, color=(0, 0, 0))
     else:
         maze_img_with_path = maze_img
 
     cv.imshow("Maze Grid with Path", maze_img_with_path)
-    #cv.imshow("Original Image with Detected Lines", lines)
-    #cv.imshow("Maze Grid", maze_img)
     cv.imshow("image", cv.imread(image_path))
-    cv.imshow("Mask", result["mask"])
     cv.waitKey(0)
     cv.destroyAllWindows()
 
 
-
 if __name__ == "__main__":
-    main()
+    test()
 

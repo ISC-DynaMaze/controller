@@ -4,7 +4,7 @@ from pathlib import Path
 from spade.agent import Agent
 from spade.template import Template
 
-from agent.photo import ReceivePhotoBehaviour, RequestPhotoBehaviour
+#from agent.photo import ReceivePhotoBehaviour
 from agent.calibration_request import CalibrationResponderBehaviour
 
 # Configure logging

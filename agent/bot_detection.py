@@ -17,6 +17,13 @@ class BotDetector:
     def get_angles(self, img, target_id: int):
         corners, ids, _ = self.detector.detectMarkers(img)
 
+        debug_img = img.copy()
+        if ids is not None:
+            # Dessine les cadres et les IDs sur l'image
+            cv2.aruco.drawDetectedMarkers(debug_img, corners, ids)
+            # Sauvegarde le fichier (il sera à la racine du container ou du projet)
+            cv2.imwrite("debug_aruco.jpg", debug_img)
+
         if ids is not None:
             for i, marker_id in enumerate(ids.flatten()):
                 if int(marker_id) == target_id:

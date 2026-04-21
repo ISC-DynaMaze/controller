@@ -201,6 +201,15 @@ def build_maze_from_image(
     maze = Maze(rows=rows, cols=cols)
     maze.build_from_detected_lines(rect, horizontal_lines, vertical_lines, overlap_ratio=overlap_ratio)
 
+    ## detect aruco target and bot markers
+    corners, ids, rejected = maze.detect_aruco_markers(image)
+    maze.set_target_cell(corners, ids)
+    maze.set_bot_cell(corners, ids)
+
+    print(f"Maze target cell: {maze.target_cell}")
+    print(f"Maze bot cell: {maze.bot_cell}")
+
+
     grid_img = maze.draw(
         cell_size=cell_size,
         margin=margin,
@@ -210,6 +219,7 @@ def build_maze_from_image(
     debug_img = image.copy()
     debug_img = draw_outer_rectangle(debug_img, rect)
     debug_img = draw_lines(debug_img, horizontal_lines, vertical_lines)
+    cv.imshow("outer rectangle", debug_img)
 
     return {
         "maze": maze,

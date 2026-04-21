@@ -5,8 +5,8 @@ from agent.walls.wall_detection import build_maze_from_path
 import cv2 as cv
 
 
-def set_start_cell(maze, row, col):
-    maze.start_cell = maze.grid[row][col]
+def set_bot_cell(maze, row, col):
+    maze.bot_cell = maze.grid[row][col]
 
 def set_target_cell(maze, row, col):
     maze.target_cell = maze.grid[row][col]
@@ -123,8 +123,8 @@ def draw_path(maze_img, path, cell_size=140, margin=40, color=(0, 0, 0), thickne
         pixel_x = margin + col * cell_size + cell_size // 2
         pixel_y = margin + row * cell_size + cell_size // 2
 
-        # start cell in green, target cell in red, path cells in specified color
-        if (row, col) == path[0]:  # start cell
+        # bot cell in green, target cell in red, path cells in specified color
+        if (row, col) == path[0]:  # bot cell
             cv.circle(img, (pixel_x, pixel_y), 15, (0, 255, 0), -1)
         elif (row, col) == path[-1]:  # target cell
             cv.circle(img, (pixel_x, pixel_y), 15, (0, 0, 255), -1)
@@ -148,7 +148,7 @@ def draw_path(maze_img, path, cell_size=140, margin=40, color=(0, 0, 0), thickne
 
 # main function to find path
 def find_path(maze: Maze):
-    start = (maze.start_cell.row, maze.start_cell.col)
+    start = (maze.bot_cell.row, maze.bot_cell.col)
     target = (maze.target_cell.row, maze.target_cell.col)
 
     # A* search to find path
@@ -158,7 +158,7 @@ def find_path(maze: Maze):
 def test():
     # ---- testing
     image_path = "images/maze_obj.png"
-    image_path = "images/maze711.png"
+    image_path = "images/maze_aruco1.png"
 
     result = build_maze_from_path(
                     image_path=image_path,
@@ -173,12 +173,6 @@ def test():
                 )
     maze = result["maze"]
 
-    # set start and target cells manually since we dont have the start and target detection implemented yet
-    set_start_cell(maze, 1, 9)
-    set_target_cell(maze, 2, 0)
-    print(f"Start Cell: {maze.start_cell}")
-    print(f"Target Cell: {maze.target_cell}")
-
     # find path 
     path = find_path(maze)
 
@@ -190,7 +184,8 @@ def test():
         maze_img_with_path = maze_img
 
     cv.imshow("Maze Grid with Path", maze_img_with_path)
-    cv.imshow("image", cv.imread(image_path))
+    #cv.imshow("image", cv.imread(image_path))
+    cv.imshow("mask", result["mask"])
     cv.waitKey(0)
     cv.destroyAllWindows()
 

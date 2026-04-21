@@ -12,6 +12,11 @@ class Cell():
         self.row = row
         self.col = col
         self.walls = walls if walls is not None else [False, False, False, False]
+        # for astar search
+        self.f = float('inf')  # Total cost of the cell (g + h)
+        self.g = float('inf')  # Cost from start to this cell
+        self.h = 0  # Heuristic cost from this cell to destination
+        self.parent = None  # Parent cell for path tracing
 
     def add_wall(self, position):
         self.walls[position] = True
@@ -30,6 +35,11 @@ class Maze():
 
         # grid of cells
         self.grid = [[Cell(i, j) for j in range(cols)] for i in range(rows)]
+
+        # start and end cells
+        # TODO change to the detected start cell
+        self.start_cell = self.grid[0][0] 
+        self.target_cell = self.grid[rows - 1][cols - 1]
 
         # explicit wall maps
         # horizontal walls: (rows + 1) x cols
@@ -50,6 +60,40 @@ class Maze():
         else:
             # if cell not valid
             return None
+    
+    # check if a move is valid (no wall blocking and destination in bounds)
+    # move: 0=DOWN, 1=UP, 2=RIGHT, 3=LEFT
+    def is_valid_move(self, row, col, move):
+        if not self.is_valid_cell(row, col):
+            return False
+        
+        current_cell = self.grid[row][col]
+        
+        # Calculate destination based on move direction
+        if move == 0:  # DOWN
+            new_row, new_col = row + 1, col
+            wall_direction = DOWN
+        elif move == 1:  # UP
+            new_row, new_col = row - 1, col
+            wall_direction = UP
+        elif move == 2:  # RIGHT
+            new_row, new_col = row, col + 1
+            wall_direction = RIGHT
+        elif move == 3:  # LEFT
+            new_row, new_col = row, col - 1
+            wall_direction = LEFT
+        else:
+            return False
+        
+        # Check if destination is within bounds
+        if not self.is_valid_cell(new_row, new_col):
+            return False
+        
+        # Check if there's a wall blocking this direction
+        if current_cell.has_wall(wall_direction):
+            return False
+        
+        return True
         
     # add a wall to the cell and update neighboring cell's wall as well
     def add_wall(self, row, col, direction):

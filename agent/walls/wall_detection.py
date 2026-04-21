@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv
-from walls.grid import Maze
+from agent.walls.grid import Maze
 
 
 def get_image(image_path):
@@ -11,32 +11,67 @@ def get_image(image_path):
 
 # get a pink mask from the image using HSV color space -> binary image with white walls and black background
 def get_pink_mask(image):
-    hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
+    # use LAB color space for better color segmentation
+    lab = cv.cvtColor(image, cv.COLOR_BGR2LAB)
+    L, a, b = cv.split(lab)
 
-    # lower and upper bounds for pink
-    lower = np.array([140, 40, 40], dtype=np.uint8)
-    upper = np.array([180, 255, 255], dtype=np.uint8)
+    # 'a' channel = green <-> red
+    a = a.astype(np.uint8)
+    b = b.astype(np.uint8)
 
-    mask = cv.inRange(hsv, lower, upper)
+    # dynamic threshold: keep reddish pixels
+    a_thresh = max(145, int(np.percentile(a, 92)))
 
-    # small cleanup to close gaps in walls
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel, iterations=2)
-    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel, iterations=1)
+    # reject yellowish pixels (maze walls and floor)
+    b_thresh = int(np.percentile(b, 85))
+
+    color_mask = np.zeros_like(a, dtype=np.uint8)
+    color_mask[(a >= a_thresh) & (b <= b_thresh + 10)] = 255
+
+    # small cleanup
+    small_kernel = np.ones((3, 3), np.uint8)
+    color_mask = cv.morphologyEx(color_mask, cv.MORPH_OPEN, small_kernel, iterations=1)
+
+    # keep only long thin horizontal / vertical structures
+    horiz_kernel = cv.getStructuringElement(cv.MORPH_RECT, (25, 1))
+    vert_kernel  = cv.getStructuringElement(cv.MORPH_RECT, (1, 25))
+
+    horiz = cv.morphologyEx(color_mask, cv.MORPH_OPEN, horiz_kernel)
+    vert  = cv.morphologyEx(color_mask, cv.MORPH_OPEN, vert_kernel)
+
+    mask = cv.bitwise_or(horiz, vert)
+
+    # reconnect tiny gaps in the wall lines
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, small_kernel, iterations=2)
 
     return mask
 
 # get main rectangle of maze
-def find_outer_rectangle(mask):
-    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+# count white pixels in each column and row
+# find the first and last column/row that have a significant number of white pixels to determine the bounding rectangle of the maze
+def find_outer_rectangle(mask, min_pixels_ratio=0.2):
+    h, w = mask.shape
 
-    if not contours:
-        raise ValueError("No contour found.")
+    # count white pixels in each column and row
+    col_counts = np.count_nonzero(mask > 0, axis=0)
+    row_counts = np.count_nonzero(mask > 0, axis=1)
 
-    biggest_contour = max(contours, key=cv.contourArea)
-    x, y, w, h = cv.boundingRect(biggest_contour)
+    # treshold depends on the size of image
+    col_threshold = int(h * min_pixels_ratio)
+    row_threshold = int(w * min_pixels_ratio)
 
-    return (x, y, w, h)
+    xs = np.where(col_counts > col_threshold)[0]
+    ys = np.where(row_counts > row_threshold)[0]
+
+    if len(xs) == 0 or len(ys) == 0:
+        raise ValueError("could not find outer rectangle")
+
+    x_min = xs[0]
+    x_max = xs[-1]
+    y_min = ys[0]
+    y_max = ys[-1]
+
+    return (x_min, y_min, x_max - x_min, y_max - y_min)
 
 # keep only lines that are in the main rectangle
 def keep_lines_in_rectangle(lines, rect, margin=10):

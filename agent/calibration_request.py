@@ -33,7 +33,7 @@ class CalibrationResponderBehaviour(CyclicBehaviour):
                     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
                     # Utilisation de l'outil existant
-                    angle = self.detector.get_angles_from_markers(img, target_id=7)
+                    angle = self.detector.get_angles(img, target_id=7)
                     
                     # Si pas trouvé, on peut renvoyer 0.0 ou une erreur
                     valeur_angle = angle if angle is not None else 0.0

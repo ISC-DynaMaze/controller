@@ -210,7 +210,6 @@ def build_maze_from_image(
     debug_img = image.copy()
     debug_img = draw_outer_rectangle(debug_img, rect)
     debug_img = draw_lines(debug_img, horizontal_lines, vertical_lines)
-    cv.imshow("outer rectangle", debug_img)
 
     return {
         "maze": maze,

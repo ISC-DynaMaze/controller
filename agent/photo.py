@@ -53,5 +53,5 @@ class ReceivePhotoBehaviour(CyclicBehaviour):
 
             print(f"Photo saved as '{filepath}'.")
             img: np.ndarray = cv2.imread(filepath)  # type: ignore
-            bot_detection = BotDetectionBehaviour(img)
+            bot_detection = BotDetectionBehaviour(img, msg.sender_jid)
             self.agent.add_behaviour(bot_detection)

@@ -2,8 +2,10 @@ import logging
 from pathlib import Path
 
 from spade.agent import Agent
+from spade.template import Template
 
 from agent.photo import ReceivePhotoBehaviour, RequestPhotoBehaviour
+from agent.calibration_request import CalibrationResponderBehaviour
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,5 +25,12 @@ class ControllerAgent(Agent):
     async def setup(self):
         ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")
         receive_photo = ReceivePhotoBehaviour(save_dir=Path("photos"))
-        self.add_behaviour(ask_photo)
-        self.add_behaviour(receive_photo)
+        ask_angle = CalibrationResponderBehaviour()
+
+        #Filter template
+        calib_template = Template()
+        calib_template.set_metadata("ontology", "calibration")
+
+        #self.add_behaviour(ask_photo)
+        #self.add_behaviour(receive_photo)
+        self.add_behaviour(ask_angle, calib_template)

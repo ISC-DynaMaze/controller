@@ -18,7 +18,7 @@ class BotDetectionBehaviour(OneShotBehaviour):
 
     async def run(self) -> None:
         corners, ids, rejected = self.detector.detectMarkers(self.img)
-
+        
         if len(corners) > 0:
             img2 = self.img.copy()
             cv2.aruco.drawDetectedMarkers(img2, corners, ids)
@@ -27,12 +27,16 @@ class BotDetectionBehaviour(OneShotBehaviour):
                 corners, ids
             )
             for bot_id, angle in bot_angles:
-                await self.send_angle_message(bot_id, angle)
+                self.agent.known_angles[bot_id] = angle
+                self.logger.debug(f"Angle mis à jour en mémoire pour le robot {bot_id} : {angle}°")
 
     async def on_start(self) -> None:
         self.dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.dict, self.params)
+
+        if not hasattr(self.agent, "known_angles"):
+            self.agent.known_angles = {}
 
     def get_angles_from_markers(
         self, corners: Sequence[np.ndarray], ids: np.ndarray
@@ -44,12 +48,3 @@ class BotDetectionBehaviour(OneShotBehaviour):
             angle = np.atan2(v[1], v[0])
             angles.append((int(id), float(np.degrees(angle))))
         return angles
-
-    async def send_angle_message(self, bot_id: int, angle: float):
-        data = {"action": "bot-rot", "id": bot_id, "angle": angle}
-        msg: Message = Message(
-            to=str(self.agent.jid),
-            metadata={"performative": "inform"},
-            body=json.dumps(data),
-        )
-        await self.send(msg)

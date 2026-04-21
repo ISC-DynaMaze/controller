@@ -8,35 +8,11 @@ from spade.agent import Agent
 from spade.behaviour import Message, OneShotBehaviour
 
 
-class BotDetectionBehaviour(OneShotBehaviour):
-    agent: Agent
-
-    def __init__(self, img: np.ndarray):
-        super().__init__()
-        self.img: np.ndarray = img
-        self.logger = logging.getLogger("BotDetection")
-
-    async def run(self) -> None:
-        corners, ids, rejected = self.detector.detectMarkers(self.img)
-        
-        if len(corners) > 0:
-            img2 = self.img.copy()
-            cv2.aruco.drawDetectedMarkers(img2, corners, ids)
-            cv2.imwrite("marker.png", img2)
-            bot_angles: list[tuple[int, float]] = self.get_angles_from_markers(
-                corners, ids
-            )
-            for bot_id, angle in bot_angles:
-                self.agent.known_angles[bot_id] = angle
-                self.logger.debug(f"Angle mis à jour en mémoire pour le robot {bot_id} : {angle}°")
-
-    async def on_start(self) -> None:
+class BotDetection:
+    def __init__(self):
         self.dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.dict, self.params)
-
-        if not hasattr(self.agent, "known_angles"):
-            self.agent.known_angles = {}
 
     def get_angles_from_markers(
         self, corners: Sequence[np.ndarray], ids: np.ndarray

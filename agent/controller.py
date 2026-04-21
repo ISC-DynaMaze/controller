@@ -23,14 +23,10 @@ class ControllerAgent(Agent):
         self.logger = logging.getLogger("ControllerAgent")
 
     async def setup(self):
-        ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")
-        receive_photo = ReceivePhotoBehaviour(save_dir=Path("photos"))
-        ask_angle = CalibrationResponderBehaviour()
-
-        #Filter template
-        calib_template = Template()
-        calib_template.set_metadata("ontology", "calibration")
+        #ask_photo = RequestPhotoBehaviour("camera_agent@isc-coordinator.lan")
+        #receive_photo = ReceivePhotoBehaviour(save_dir=Path("photos"))
+        ask_angle = CalibrationResponderBehaviour() 
 
         #self.add_behaviour(ask_photo)
         #self.add_behaviour(receive_photo)
-        self.add_behaviour(ask_angle, calib_template)
+        self.add_behaviour(ask_angle)

@@ -8,7 +8,7 @@ import numpy as np
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour, Message, OneShotBehaviour
 
-from agent.bot_detection import BotDetectionBehaviour
+from agent.bot_detection import BotDetection
 
 
 class RequestPhotoBehaviour(OneShotBehaviour):

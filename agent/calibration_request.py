@@ -19,7 +19,7 @@ class CalibrationResponderBehaviour(CyclicBehaviour):
             if hasattr(self.agent, "known_angles") and id_aruco_du_robot in self.agent.known_angles:
                 angle_actuel = self.agent.known_angles[id_aruco_du_robot]
             else:
-                self.agent.logger.warning("Attention : Le robot n'est pas encore visible sur la caméra !")
+                self.agent.logger.warning("[Warning] Robot not on the camera")
             
             # 2. On fabrique la réponse pour le robot
             reply = msg.make_reply()

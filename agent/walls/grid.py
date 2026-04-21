@@ -36,9 +36,8 @@ class Maze():
         # grid of cells
         self.grid = [[Cell(i, j) for j in range(cols)] for i in range(rows)]
 
-        # start and end cells
-        # TODO change to the detected start cell
-        self.start_cell = self.grid[0][0] 
+        # bot and target cells
+        self.bot_cell = self.grid[0][0] 
         self.target_cell = self.grid[rows - 1][cols - 1]
 
         # explicit wall maps
@@ -47,6 +46,9 @@ class Maze():
 
         # vertical walls: rows x (cols + 1)
         self.v_walls = [[False for _ in range(cols + 1)] for _ in range(rows)]
+
+        # maze rectangle in source image coordinates: (x, y, w, h)
+        self.rect = None
 
     # check if a cell is within boundaries
     # should return true if valid cell
@@ -158,6 +160,74 @@ class Maze():
             self.grid[row][0].add_wall(LEFT)
             self.grid[row][self.n_cols - 1].add_wall(RIGHT)
 
+    # detect target cell with aruco marker 
+    def detect_aruco_markers(self, image):
+        dict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_100)
+        params = cv.aruco.DetectorParameters()
+        detector = cv.aruco.ArucoDetector(dict, params)
+
+        corners, ids, rejected = detector.detectMarkers(image)
+
+        if len(corners) > 0:
+            #img2 = image.copy()
+            #cv.aruco.drawDetectedMarkers(img2, corners, ids)
+            #cv.imshow("marker.png", img2)
+            print(f"Detected Aruco marker IDs: {ids.flatten()}")
+        else:
+            print("No Aruco markers detected")
+
+        return corners, ids, rejected
+
+    # set target cell as the aruco marker (should stay the same throughout the whole process)
+    def set_target_cell(self, corners, ids, target_id=2):
+        if ids is None:
+            print("No Aruco markers detected, cannot set target cell")
+            return
+        
+        for i, marker_id in enumerate(ids.flatten()):
+            if marker_id == target_id:
+                # get the center of the marker
+                c = corners[i][0]
+                center_x = int(c[:, 0].mean())
+                center_y = int(c[:, 1].mean())
+
+                # convert pixel coordinates to cell coordinates
+                row, col = self.pixel_to_cell(center_x, center_y)
+
+                if self.is_valid_cell(row, col):
+                    self.target_cell = self.grid[row][col]
+                    print(f"Set target cell to {self.target_cell} based on Aruco marker ID {target_id}")
+                else:
+                    print(f"Aruco marker ID {target_id} is out of maze bounds")
+                return
+        
+        print(f"Aruco marker ID {target_id} not found, cannot set target cell")
+        
+
+    # set bot marker (can move; we can call this multiple times to update target position in find_path)
+    def set_bot_cell(self, corners, ids, bot_id=7):
+        if ids is None:
+            print("No Aruco markers detected, cannot set bot cell")
+            return
+        
+        for i, marker_id in enumerate(ids.flatten()):
+            if marker_id == bot_id:
+                # get the center of the marker
+                c = corners[i][0]
+                center_x = int(c[:, 0].mean())
+                center_y = int(c[:, 1].mean())
+
+                # convert pixel coordinates to cell coordinates
+                row, col = self.pixel_to_cell(center_x, center_y)
+
+                if self.is_valid_cell(row, col):
+                    self.bot_cell = self.grid[row][col]
+                    print(f"Set bot cell to {self.bot_cell} based on Aruco marker ID {bot_id}")
+                else:
+                    print(f"Aruco marker ID {bot_id} is out of maze bounds")
+                return
+        
+        print(f"Aruco marker ID {bot_id} not found, cannot set bot cell")
 
     # helper functions for building maze from detected lines
 
@@ -180,6 +250,9 @@ class Maze():
     def build_from_detected_lines(self, rect, horizontal_lines, vertical_lines, overlap_ratio=0.6):
         self.clear_walls()
         self.add_outer_border()
+
+        # keep rectangle for coordinate transforms (e.g. ArUco marker center -> maze cell)
+        self.rect = rect
 
         # dimensions of the main rectangle containing the maze
         rect_x, rect_y, rect_w, rect_h = rect
@@ -284,6 +357,22 @@ class Maze():
                     cv.line(img, (x, y1), (x, y2), (0, 0, 255), wall_thickness)
 
         return img
+    
+    # pixel to cell coordinates
+    def pixel_to_cell(self, x, y, cell_size=140, margin=40):
+        # using detected maze rectangle.
+        if self.rect is not None:
+            rect_x, rect_y, rect_w, rect_h = self.rect
+            cell_w = rect_w / self.n_cols
+            cell_h = rect_h / self.n_rows
+
+            col = int((x - rect_x) / cell_w)
+            row = int((y - rect_y) / cell_h)
+            return row, col
+
+        col = int((x - margin) // cell_size)
+        row = int((y - margin) // cell_size)
+        return row, col
 
     # convert maze to a dictionary format for easy serialization
     def to_dict(self):

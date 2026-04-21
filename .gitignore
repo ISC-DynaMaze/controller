@@ -2,3 +2,12 @@ venv
 .venv
 __pycache__
 uv.lock
+.Ds_Store
+
+# images
+images/*
+mazes/*
+photos/*
+
+# tests
+maze_tests/*

@@ -13,9 +13,9 @@ class CalibrationResponderBehaviour(CyclicBehaviour):
 
     async def run(self):
         msg = await self.receive(timeout=60)
-        if not msg: return
-
-        # ÉTAPE 1 : Le robot demande
+        if not msg: 
+            return
+        
         if msg.metadata.get("ontology") == "calibration":
             self.current_robot_request = msg
             # Demande à la caméra
@@ -23,22 +23,17 @@ class CalibrationResponderBehaviour(CyclicBehaviour):
             msg_cam.set_metadata("performative", "request")
             await self.send(msg_cam)
 
-        # ÉTAPE 2 : La caméra répond
         elif msg.body and not msg.metadata.get("ontology"):
             if self.current_robot_request:
                 try:
-                    # Décodage
                     img_data = base64.b64decode(msg.body)
                     nparr = np.frombuffer(img_data, np.uint8)
                     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-                    # Utilisation de l'outil existant
                     angle = self.detector.get_angles(img, target_id=7)
                     
-                    # Si pas trouvé, on peut renvoyer 0.0 ou une erreur
                     valeur_angle = angle if angle is not None else 0.0
 
-                    # Réponse au robot
                     reply = self.current_robot_request.make_reply()
                     reply.set_metadata("ontology", "calibration")
                     reply.body = json.dumps({"angle": valeur_angle})

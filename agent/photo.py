@@ -13,8 +13,6 @@ class ReceivePhotoBehaviour(CyclicBehaviour):
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
     async def run(self):
-        # On ne reçoit que les messages qui NE sont PAS des demandes de calibration
-        # Mais dans ton nouveau flux, c'est risqué.
         msg = await self.receive(timeout=10)
         if msg and msg.body:
             # Logique de sauvegarde uniquement

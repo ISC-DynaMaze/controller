@@ -13,12 +13,12 @@ class Cell():
         self.col = col
         self.walls = walls if walls is not None else [False, False, False, False]
         self.obstacles = []
+        
         # for astar search
         self.f = float('inf')  # Total cost of the cell (g + h)
         self.g = float('inf')  # Cost from start to this cell
         self.h = 0  # Heuristic cost from this cell to destination
         self.parent = None  # Parent cell for path tracing
-        self.obstacles = []
 
     def add_wall(self, position):
         self.walls[position] = True

@@ -17,7 +17,6 @@ def get_image(image_path):
 # get a mask for given color
 def get_obstacle_mask(image, color_range):
     hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    print(f"HSV: {hsv[154:170, 60:80]}")
 
     # one color range (yellow and green) 
     if len(color_range) == 1:
@@ -38,30 +37,66 @@ def get_obstacle_mask(image, color_range):
 
     return mask 
 
-# higjlight detected objects
-def highlight_obstacles(image, mask):
+# extract obstacle boxes from the mask
+def extract_obstacle_boxes(mask, min_area=500):
     contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    boxes = []
+
+    for contour in contours:
+        area = cv.contourArea(contour)
+        if area < min_area:
+            continue
+
+        corners = get_obstacle_corners(contour)
+        center_x = int(np.mean(corners[:, 0]))
+        center_y = int(np.mean(corners[:, 1]))
+
+        center = (center_x, center_y)
+        boxes.append({
+            "contour": contour,
+            "corners": corners,
+            "center": center,
+            "area": area,
+        })
+
+    return boxes
+
+## get corners of one object contour
+def get_obstacle_corners(contour):
+    epsilon = 0.02 * cv.arcLength(contour, True)
+    approx = cv.approxPolyDP(contour, epsilon, True)
+
+    # Keep true shape corners when we already have 4, otherwise force a 4-corner box.
+    if len(approx) == 4:
+        corners = approx.reshape(-1, 2)
+    else:
+        rect = cv.minAreaRect(contour)
+        corners = cv.boxPoints(rect)
+
+    return corners.astype(np.int32)
+
+# highlight objects in the image with their contours, corners and centers
+def highlight_obstacles(image, mask):
+    blocks = extract_obstacle_boxes(mask)
     highlighted = image.copy()
-    cv.drawContours(highlighted, contours, -1, (0, 255, 255), 2)  # yellow contours
+
+    for block in blocks:
+        corners = block["corners"]
+        center = block["center"]
+
+        cv.polylines(highlighted, [corners], True, (0, 255, 255), 2)
+
+        for cx, cy in corners:
+            cv.circle(highlighted, (int(cx), int(cy)), 3, (255, 0, 0), -1)
+
+        cv.circle(highlighted, center, 2, (0, 0, 255), -1)
+        
+    #centers = get_obstacle_center(image, mask)
     return highlighted
 
-# get the center of the detected obstacles, will be used to determine their position in the grid 
-def get_obstacle_center(mask, min_area=100):
-    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    centers = []
-
-    for contour in contours: 
-        area = cv.contourArea(contour)
-        if area >= min_area:
-            x, y, w, h = cv.boundingRect(contour)
-            center_x = x + w // 2
-            center_y = y + h // 2
-            centers.append({"contour": contour, "bbox": (x, y, w, h), "center": (center_x, center_y), "area": area})
-
-    return centers
 
 def main():
-    image_path = "images/maze_obj.png"
+    image_path = "images/maze_obs_1.jpg"
     image = get_image(image_path)
     #maze = get_built_maze(None)  #TODO replace with agent
 
@@ -84,12 +119,12 @@ def main():
     r_obstacle = redObstacle() 
     g_obstacle = greenObstacle() 
 
-    mask = get_obstacle_mask(image, g_obstacle.color_range)
+    mask = get_obstacle_mask(image, r_obstacle.color_range)
     highlighted = highlight_obstacles(image, mask)
     cv.imshow("Obstacle Mask", mask)
     cv.imshow("Highlighted Obstacles", highlighted)
     cv.imshow("Maze Grid", result["grid_img"])
-    cv.imshow("Detected Segments", result["debug_img"])
+    #cv.imshow("Detected Segments", result["debug_img"])
     cv.waitKey(0)
     cv.destroyAllWindows()
 

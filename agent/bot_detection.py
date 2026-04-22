@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Sequence
 import datetime
 
 import cv2

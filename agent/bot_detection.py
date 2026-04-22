@@ -1,5 +1,4 @@
-import json
-import logging
+import Path
 from typing import Sequence
 import datetime
 
@@ -14,6 +13,9 @@ class BotDetector:
         self.dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.dict, self.params)
+
+        self.save_path = Path(save_dir)
+        self.save_path.mkdir(parents=True, exist_ok=True)
 
     def get_angles(self, img, target_id: int):
         corners, ids, _ = self.detector.detectMarkers(img)

@@ -2,10 +2,12 @@ from agent.walls.grid import Cell
 
 class Obstacle:
     def __init__(self):
-        self.cell: Cell = None
-        #self.color = (0,0,0)
+        self.cells = []  # list of cells occupied by the obstacle
+        self.center = None
         self.color_range = [[(0,0,0), (0,0,0)]]
 
+    def add_cell(self, cell):
+        self.cells.append(cell)
 
     
 class greenObstacle(Obstacle): 
@@ -17,7 +19,7 @@ class redObstacle(Obstacle):
     def __init__(self):
         super().__init__()
         # red uses two ranges in HSV
-        self.color_range = [[(0, 80, 80), (5, 255, 255)], [(178, 80, 80), (185, 255, 255)]]
+        self.color_range = [[(0, 80, 80), (2, 255, 255)], [(178, 80, 80), (185, 255, 255)]]
 
 class yellowObstacle(Obstacle):
     def __init__(self):

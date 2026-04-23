@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 from spade.behaviour import OneShotBehaviour
 
-from send_maze import SendMazeBehaviour
+from agent.send_maze import SendMazeBehaviour
 from walls.wall_detection import build_maze_from_path
 
 # Behaviour to build maze from photo, save debug image, and send maze data to requester using SendMazeBehaviour
@@ -34,6 +34,8 @@ class BuildMazeBehaviour(OneShotBehaviour):
             return
 
         maze = result["maze"]
+        # store maze in agent for later use
+        self.agent.maze = maze
 
         # debug image
         grid_img = result["grid_img"]
